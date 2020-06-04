@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.mj.mapper.BoardMapper">
+
+	<select id="getList" resultType="org.mj.dto.BoardListDTO">
+		SELECT 
+            B.BNO AS "bno", B.TITLE AS "title", B.WRITER AS "writer", B.REGDATE AS "regDate", B.HIT as "hit", C.CATEGORY_NAME AS "category",
+            (SELECT COUNT(FILE_NO) AS CNT FROM TBL_BOARD_FILE WHERE BNO = B.BNO) AS "fileCnt",
+            TO_CHAR(REGDATE, 'YYYY/MM/DD') AS "regDateForm"
+		FROM TBL_BOARD B, CODE_CATEGORY C
+		WHERE B.CATEGORY = C.CATEGORY_CODE(+)
+		ORDER BY B.REGDATE DESC 
+	</select>
+
+	<insert id="insertSelectKey">
+		INSERT INTO TBL_BOARD (BNO,TITLE,CONTENT, WRITER, CATEGORY)
+		VALUES (SEQ_BOARD.NEXTVAL,#{title}, #{content}, #{writer}, #{category})
+		<selectKey keyProperty="bno" order="AFTER" resultType="int">
+			SELECT SEQ_BOARD.CURRVAL FROM DUAL
+		</selectKey>
+	</insert>
+	
+	<insert id="insertFile" parameterType="org.mj.domain.BoardFileVO">
+        INSERT INTO TBL_BOARD_FILE( FILE_NO, BNO, FILE_NAME, FILE_PATH, FILE_SIZE, ORIGIN_FILE_NAME )
+        VALUES ( SEQ_BOARDFILE.NEXTVAL, #{bno}, #{fileName}, #{filePath}, #{fileSize}, #{originFileName} )
+ 	</insert>
+ 	
+ 	<update id="updateHit">
+		UPDATE TBL_BOARD
+		SET HIT= NVL(HIT, 0) + 1
+		WHERE BNO = #{bno}
+	</update>
+ 	
+
+	<select id="read" resultType="org.mj.dto.BoardDTO">
+		SELECT BNO, TO_CHAR(REGDATE, 'YYYY/MM/DD HH24:MI:SS') AS "REGDATE", TITLE, CONTENT, WRITER, HIT, F.CNT 
+		FROM TBL_BOARD
+			,(SELECT COUNT(FILE_NO) AS CNT FROM TBL_BOARD_FILE WHERE BNO = #{bno}) F 
+		WHERE BNO = #{bno}
+	</select>
+	
+	<select id="readFile" resultType="org.mj.dto.BoardFileDTO">
+		SELECT FILE_NO AS "FILENO", FILE_NAME AS "FILENAME", FILE_PATH AS "FILEPATH", FILE_SIZE AS "FILESIZE", ORIGIN_FILE_NAME AS "ORIGINFILENAME"
+		FROM TBL_BOARD_FILE
+		WHERE BNO = #{bno}
+	</select>
+
+	<update id="update">
+		UPDATE TBL_BOARD
+			SET TITLE = #{title},
+			CONTENT = #{content},
+			UPDATEDATE = SYSDATE
+		WHERE BNO = #{bno}
+	</update>
+</mapper>
